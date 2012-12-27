@@ -58,3 +58,47 @@ We proved that weird behaviour with the following tests:
 		$aChar++;
 		$this->assertEquals('aa', $aChar);
 	}
+
+
+Some chars you write as single chars aren't really single chars
+---------------------------------------------------------------
+
+The following code was intended to generate random tokens of length 40 chars:
+
+	public static function nextRandomToken(
+	) {
+		$valid_chars = array(
+			'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J',
+			'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T',
+			'U', 'V', 'W', 'X', 'Y', 'Z',
+			'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j',
+			'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't',
+			'u', 'v', 'w', 'x', 'y', 'z',
+			'0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+			'%', '-', '.', ',', '\'', '/', '$', '·', '@', '='
+		);
+		$result = "";
+		for ($p = 0; $p < 40; $p++) {
+			$result = $result . $valid_chars[rand(0, count($valid_chars) - 1)];
+		}
+		return $result;
+	}
+
+The method is fairly simple but it turns out that it randomly breaks a test that checks generated tokens have length 40.
+Why? Because the literal '·' hasn't length 1 but 2!
+
+Of course this is an encoding issue we don't realize when writing a literal in our code. The obvious behaviour would be that if your write a literal containing N chars its length was N. But as shown this is not true if you write a literal containing some special chars, like '·'.
+
+We proved this behaviour with the following test:
+
+	public function test_someCharsArentReallySingleChars(
+	) {
+		$this->assertEquals(2, strlen('·'));
+		$this->assertEquals(2, strlen('¬'));
+		$this->assertEquals(2, strlen('ñ'));
+		$this->assertEquals(2, strlen('Ñ'));
+		$this->assertEquals(2, strlen('ç'));
+		$this->assertEquals(2, strlen('º'));
+		$this->assertEquals(2, strlen('ª'));
+		$this->assertEquals(3, strlen('€'));
+	}
